@@ -71,6 +71,7 @@ use File::Temp qw(tempfile);
 use Getopt::Long;
 use Digest::MD5 qw(md5_base64);
 use Cwd qw/abs_path cwd/;
+use Config;
 
 
 # Global constants
@@ -306,6 +307,8 @@ our $lcov_branch_coverage = 0;
 our $rc_desc_html = 0;	# lcovrc: genhtml_desc_html
 
 our $cwd = cwd();	# Current working directory
+our $opt_src_path;
+our @src_path;
 
 
 #
@@ -386,6 +389,7 @@ if ($config || %opt_rc)
 		"genhtml_demangle_cpp_params"	=> \$demangle_cpp_params,
 		"genhtml_dark_mode"             => \$dark_mode,
 		"genhtml_missed"		=> \$opt_missed,
+		"genhtml_src_path"		=> \$opt_src_path,
 		"lcov_function_coverage"	=> \$lcov_func_coverage,
 		"lcov_branch_coverage"		=> \$lcov_branch_coverage,
 		});
@@ -434,6 +438,7 @@ if (!GetOptions("output-directory|o=s"	=> \$output_directory,
 		"precision=i"		=> \$default_precision,
 		"missed"		=> \$opt_missed,
 		"dark-mode"		=> \$dark_mode,
+		"src-path=s"		=> \$opt_src_path,
 		))
 {
 	print(STDERR "Use $tool_name --help to get usage information\n");
@@ -474,6 +479,13 @@ parse_ignore_errors(@opt_ignore_errors);
 
 # Split the list of prefixes if needed
 parse_dir_prefix(@opt_dir_prefix);
+
+if ($opt_src_path)
+{
+	@src_path = split(/$Config{path_sep}/, $opt_src_path)
+} else {
+	@src_path = ($cwd)
+}
 
 # Check for info filename
 if (!@info_filenames)
@@ -637,6 +649,7 @@ HTML output:
       --precision NUM               Set precision of coverage rate
       --missed                      Show miss counts as negative numbers
       --dark-mode                   Use the dark-mode CSS
+      --src-path                    Sets the search path for source files
 
 For more information see: $lcov_url
 END_OF_USAGE
@@ -1387,6 +1400,17 @@ sub compress_brcount($)
 	return db_to_brcount($db, $brcount);
 }
 
+sub find_in_src_path($)
+{
+	my $filename = $_[0];
+	foreach my $candidate (map { File::Spec->catfile($_, $filename) } @src_path) {
+		if (-e $candidate) {
+			return $candidate;
+		}
+	}
+	return undef
+}
+
 
 #
 # read_info_file(info_filename)
@@ -1526,15 +1550,21 @@ sub read_info_file($)
 			{
 				# Filename information found
 				# Retrieve data for new entry
-				$filename = File::Spec->rel2abs($1, $cwd);
-
-				if (!File::Spec->file_name_is_absolute($1) &&
-				    !$notified_about_relative_paths)
+				if (!File::Spec->file_name_is_absolute($1))
 				{
-					info("Resolved relative source file ".
-					     "path \"$1\" with CWD to ".
-					     "\"$filename\".\n");
-					$notified_about_relative_paths = 1;
+					$filename = find_in_src_path($1);
+					if (!$filename) {
+						$filename = File::Spec->rel2abs($1, $cwd);
+					}
+					if (!$notified_about_relative_paths)
+					{
+						info("Resolved relative source file " .
+							"path \"$1\" to " .
+							"\"$filename\".\n");
+						$notified_about_relative_paths = 1;
+					}
+				} else {
+					$filename = $1;
 				}
 
 				$data = $result{$filename};
