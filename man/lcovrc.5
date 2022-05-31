@@ -186,6 +186,11 @@ genhtml_desc_html=0
 #genhtml_demangle_cpp_params = ""
 .br
 
+# Specify search path for source files
+.br
+#genhtml_src_path = "."
+.br
+
 # Location of the gcov tool
 .br
 #geninfo_gcov_tool = gcov
@@ -686,6 +691,17 @@ as negative numbers in overview pages.
 .br
 
 Default is 0.
+.PP
+.BR genhtml_src_path " ="
+.I search_path
+.IP
+Specify a search path for source files with relative paths.
+
+The search path is composed of a list directories separated by colons (:).
+Each directory is searched in order, the first directory where the file is found is used.
+.br
+
+Default is the current working directory.
 .PP
 
 .

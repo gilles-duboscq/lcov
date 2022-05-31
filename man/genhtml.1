@@ -70,6 +70,9 @@ genhtml \- Generate HTML view from LCOV coverage data files
 .br
 .RB [ \-\-dark\-mode ]
 .br
+.RB [ \-\-src\-path
+.IR search-path ]
+.br
 .IR tracefile(s)
 .RE
 .SH DESCRIPTION
@@ -584,6 +587,22 @@ option
 Use a light-display-on-dark-background color scheme rather than the default dark-display-on-light-background.
 
 The idea is to reduce eye strain due to viewing dark text on a bright screen - particularly at night.
+
+.B \-\-src\-path
+.I search\-path
+.br
+.RS
+Specify the search path for source files with relative paths.
+
+The search path is composed of a list directories separated by colons (:).
+Each directory is searched in order, the first directory where the file is found is used.
+
+When this option is omitted, source files with relative path are resolved in the current working directory.
+
+This option can also be configured permanently using the configuration file
+option
+.IR genhtml_src_path .
+.RE
 
 
 .SH FILES
